@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id             String        @id @default(uuid())
+  age            Int
+  sex            String        // "M" or "F"
+  height         Float         // in cm
+  weight         Float         // in kg
+  activityLevel  String        // "sedentary", "moderate", "active", "very_active"
+  lifestyle      String        // JSON string (e.g., smoker, sleep patterns, etc.)
+  healthGoals    String        // Comma-separated goals or JSON string
+  medicalHistory String?       // Optional text
+  reports        BloodReport[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model BloodReport {
+  id             String            @id @default(uuid())
+  userId         String
+  user           UserProfile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date           DateTime
+  labName        String            // "Biofutur", "Cerballiance", "Eurofins", "Inovie", "Biogroup", etc.
+  healthScore    Int               // 0 to 100
+  scoreClass     String            // "Excellent", "Good", "Moderate", "At risk"
+  insightSummary String            // Markdown or HTML text summarizing the key highlights
+  biomarkers     ReportBiomarker[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model ReportBiomarker {
+  id             String      @id @default(uuid())
+  reportId       String
+  report         BloodReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  name           String      // Canonical French name (e.g. "Triglycérides", "Glycémie à jeun", "Cholestérol LDL", etc.)
+  rawValue       Float
+  rawUnit        String      // g/L, mmol/L, mg/dL, etc.
+  valG_L         Float?      // Normalized value in g/L if applicable
+  valMmol_L      Float?      // Normalized value in mmol/L if applicable
+  refMin         Float?      // Lab reference range minimum
+  refMax         Float?      // Lab reference range maximum
+  flag           String      // "green" (normal), "blue" (very good), "yellow" (monitor), "orange" (slightly abnormal), "red" (abnormal)
+  category       String      // "lipid", "metabolic", "inflammatory", "hematology", "iron", "liver", "kidney"
+  explanation    String?     // A patient-friendly description of what this means
+}
