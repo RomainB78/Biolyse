@@ -6,6 +6,8 @@ import { calculateHealthScore } from "@/lib/scoring";
 import { generateInsightSummary } from "@/lib/gemini";
 import { ParsedBiomarker } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 // POST /api/upload - Handle blood test uploads (PDF)
 export async function POST(req: Request) {
   try {
