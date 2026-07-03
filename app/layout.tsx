@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Biolyse AI",
@@ -60,6 +61,7 @@ export default function RootLayout({
             </p>
           </div>
         </footer>
+        <Analytics />
       </body>
     </html>
   );
