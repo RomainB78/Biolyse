@@ -95,7 +95,7 @@ export default function UploadPage() {
         
         // Wait 1 second on success page before redirecting to dashboard
         setTimeout(() => {
-          router.push("/");
+          router.push("/?view=dashboard");
           router.refresh();
         }, 1200);
       } else {

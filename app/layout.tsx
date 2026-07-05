@@ -30,7 +30,7 @@ export default function RootLayout({
                 </span>
               </Link>
               <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-                <Link href="/" className="transition-colors hover:text-[#b57c1e]">
+                <Link href="/?view=dashboard" className="transition-colors hover:text-[#b57c1e]">
                   Tableau de bord
                 </Link>
                 <Link href="/history" className="transition-colors hover:text-[#b57c1e]">

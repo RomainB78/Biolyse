@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
   Upload, 
   Calendar, 
@@ -22,14 +22,19 @@ import BiomarkerCard from "@/components/BiomarkerCard";
 import Base100Chart from "@/components/Base100Chart";
 import { evaluateCorrelations, generateRecommendations } from "@/lib/scoring";
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   // Dashboard states
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [reports, setReports] = useState<any[]>([]);
   const [trends, setTrends] = useState<any>({});
+
+  // View Mode: dashboard (only if reports exist and ?view=dashboard), otherwise upload (default)
+  const viewParam = searchParams.get("view");
+  const viewMode = (viewParam === "dashboard" && reports.length > 0) ? "dashboard" : "upload";
 
   // Onboarding workflow states (0: Profile, 1: Upload)
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -103,16 +108,12 @@ export default function DashboardPage() {
           setHealthGoals(profileData.healthGoals);
         }
         
-        if (reportsData.length === 0) {
-          setOnboardingStep(1);
-        }
+        setOnboardingStep(1); // Profile exists, default to upload screen
       } else {
         setAge("");
         setHeight("");
         setWeight("");
-        if (reportsData.length === 0) {
-          setOnboardingStep(0);
-        }
+        setOnboardingStep(0); // Profile missing, default to step 0
       }
     } catch (err) {
       console.error("Error loading dashboard data:", err);
@@ -245,6 +246,7 @@ export default function DashboardPage() {
           setProcessing(false);
           setLoading(true);
           await loadDashboardData();
+          router.push("/?view=dashboard");
         }, 1200);
       } else {
         setUploadError(data.error || "Une erreur est survenue lors de l'extraction.");
@@ -282,8 +284,8 @@ export default function DashboardPage() {
     );
   }
 
-  // EMPTY STATE WITH STEP-BY-STEP ONBOARDING
-  if (reports.length === 0) {
+  // EMPTY STATE WITH STEP-BY-STEP ONBOARDING OR EXPLICIT UPLOAD VIEW
+  if (reports.length === 0 || viewMode === "upload") {
     return (
       <div className="mx-auto max-w-xl py-6 space-y-8">
         <div className="text-center space-y-2">
@@ -296,15 +298,17 @@ export default function DashboardPage() {
         </div>
 
         {/* Custom Stepper Navigation */}
-        <div className="flex justify-center items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#857d77] pb-2 border-b border-[#EAE6E1]">
-          <span className={`px-2 py-0.5 rounded-md ${onboardingStep === 0 ? "text-[#b57c1e] bg-[#FFF8E1]" : "text-[#1b5e20]"}`}>
-            1. Profil de Santé
-          </span>
-          <span className="text-[#EAE6E1]">/</span>
-          <span className={`px-2 py-0.5 rounded-md ${onboardingStep === 1 ? "text-[#b57c1e] bg-[#FFF8E1]" : ""}`}>
-            2. Import du Bilan
-          </span>
-        </div>
+        {reports.length === 0 && (
+          <div className="flex justify-center items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#857d77] pb-2 border-b border-[#EAE6E1]">
+            <span className={`px-2 py-0.5 rounded-md ${onboardingStep === 0 ? "text-[#b57c1e] bg-[#FFF8E1]" : "text-[#1b5e20]"}`}>
+              1. Profil de Santé
+            </span>
+            <span className="text-[#EAE6E1]">/</span>
+            <span className={`px-2 py-0.5 rounded-md ${onboardingStep === 1 ? "text-[#b57c1e] bg-[#FFF8E1]" : ""}`}>
+              2. Import du Bilan
+            </span>
+          </div>
+        )}
 
         {/* STEP 1: CONFIGURE HEALTH PROFILE */}
         {onboardingStep === 0 && (
@@ -548,13 +552,22 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                <div className="flex justify-between items-center">
+                 <div className="flex justify-between items-center">
                   <button
                     onClick={() => setOnboardingStep(0)}
                     className="text-xs font-semibold text-[#857d77] hover:underline"
                   >
                     ← Modifier mon profil
                   </button>
+
+                  {reports.length > 0 && (
+                    <Link
+                      href="/?view=dashboard"
+                      className="text-xs font-bold text-[#b57c1e] hover:underline flex items-center gap-1"
+                    >
+                      Consulter mon dernier bilan →
+                    </Link>
+                  )}
 
                   {file && (
                     <div className="flex gap-3">
@@ -651,6 +664,16 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-12">
+      {/* Quick Actions Bar */}
+      <div className="no-print flex justify-end">
+        <Link
+          href="/"
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-[#2B2520] px-4 text-xs font-semibold text-[#FBFAF8] transition-all hover:bg-[#2B2520]/85 cursor-pointer"
+        >
+          <Upload size={14} /> Importer un nouveau bilan
+        </Link>
+      </div>
+
       {/* 1. TOP SECTION: Daily Insight Narrative & Radial Score */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 space-y-4">
@@ -821,5 +844,13 @@ export default function DashboardPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse py-12 text-center text-xs text-[#857d77]">Chargement...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }
